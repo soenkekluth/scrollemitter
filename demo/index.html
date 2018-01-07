@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+  <title>ScrollFeatures Demo</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="scrollemitter.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prefixfree/1.0.7/prefixfree.min.js"></script>
+</head>
+
+<body>
+  <strong style="position:fixed; left:50%; transform:translateX(-50%); color:white;">open your console</strong>
+  <div class="follower"></div>
+  <div class="overflow-y">
+    <div class="overflow-content">
+      <h2>scroll vertical</h2>
+    </div>
+  </div>
+  <div class="overflow-x">
+    <div class="overflow-content">
+      <h2>scroll horizontal</h2>
+    </div>
+  </div>
+  <script src="../build/index.js"></script>
+  <script>
+    var follower = document.querySelector('.follower');
+    var prefixedTransform = PrefixFree.prefixSelector('transform');
+
+    window.console = window.console || function() {}
+
+
+    function directionToString(direction) {
+      switch (direction) {
+        case ScrollEmitter.direction.up:
+          return 'up';
+        case ScrollEmitter.direction.none:
+          return 'none';
+        case ScrollEmitter.direction.down:
+          return 'down';
+        case ScrollEmitter.direction.left:
+          return 'left';
+        case ScrollEmitter.direction.right:
+          return 'right';
+      }
+    }
+
+    function onScroll(e) {
+      if (e.emitter.canScrollY) {
+        console.log(e.target.className + '   ===== ' + e.type + ' =====', 'y: ' + e.emitter.y + '  direction: ' + e.emitter.directionY + ' (' + directionToString(e.emitter.directionY) + ')')
+      } else {
+        console.log(e.target.className + '   ===== ' + e.type + ' =====', 'x: ' + e.emitter.x + '  direction: ' + e.emitter.directionX + ' (' + directionToString(e.emitter.directionX) + ')')
+      }
+    };
+
+    function addScrollHandler(scrollemitter) {
+      return scrollemitter
+        .on('scroll:start', onScroll)
+        .on('scroll:progress', onScroll)
+        .on('scroll:stop', onScroll)
+        .on('scroll:left', onScroll)
+        .on('scroll:right', onScroll)
+        .on('scroll:down', onScroll)
+        .on('scroll:up', onScroll)
+        .on('scroll:min', onScroll)
+        .on('scroll:max', onScroll);
+    }
+
+    var scrollemitter = new ScrollEmitter()
+      .on('scroll:resize', function(event) {
+        console.log('========== scroll:resize =============', scrollemitter.clientHeight, scrollemitter.clientWidth);
+      })
+      .on('scroll:down', function(event) {
+        console.log('========== scroll:down =============');
+      })
+      .on('scroll:up', function(event) {
+        console.log('========== scroll:up =============');
+      })
+      .on('scroll:min', function(event) {
+        console.log('========== scroll:min =============');
+      })
+      .on('scroll:max', function(event) {
+        console.log('========== scroll:max =============');
+      })
+      .on('scroll:start', function(event) {
+        console.log('scroll:start     y: ' + scrollemitter.y + '  direction: ' + scrollemitter.directionY + ' (' + directionToString(scrollemitter.directionY) + ')')
+        follower.style[prefixedTransform] = 'translate3d(0,' + scrollemitter.y + 'px,0)';
+      })
+      .on('scroll:progress', function(event) {
+        console.log('scroll:progress  y: ' + scrollemitter.y + '  speed: ' + scrollemitter.speedY + '  maxSpeed: ' + scrollemitter.maxSpeedY + '  direction: ' + scrollemitter.directionY + ' (' + directionToString(scrollemitter.directionY) + ')')
+        follower.style[prefixedTransform] = 'translate3d(0,' + scrollemitter.y + 'px,0)';
+      })
+      .on('scroll:stop', function(event) {
+        console.log('scroll:stop      y: ' + scrollemitter.y + '  direction: ' + scrollemitter.directionY + ' (' + directionToString(scrollemitter.directionY) + ')')
+        follower.style[prefixedTransform] = 'translate3d(0,' + scrollemitter.y + 'px,0)';
+      });
+
+
+    var scrollemitter2 = new ScrollEmitter(document.querySelector('.overflow-y'));
+    var scrollemitter3 = new ScrollEmitter(document.querySelector('.overflow-x'));
+
+    addScrollHandler(scrollemitter2);
+    addScrollHandler(scrollemitter3);
+  </script>
+</body>
+
+</html>
