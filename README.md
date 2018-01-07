@@ -1,4 +1,6 @@
 # ScrollEmitter
+
+[![Greenkeeper badge](https://badges.greenkeeper.io/soenkekluth/scrollemitter.svg)](https://greenkeeper.io/)
 enhanced scroll events like scroll: start, progress, stop, min, max
 
 ScrollEmitter gives you custom scroll events like 
