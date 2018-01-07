@@ -1,0 +1,54 @@
+{
+  "name": "scrollemitter",
+  "version": "1.0.0",
+  "description":
+    "enhanced scroll events like scroll: start, progress, stop, min, max",
+  "main": "build/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint src --fix"
+  },
+  "files": ["src", "build"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/soenkekluth/scrollemitter.git"
+  },
+  "keywords": [
+    "scroll",
+    "scroll direction",
+    "scroll speed",
+    "scrolling",
+    "scroll features",
+    "browser",
+    "enhanced",
+    "onscroll",
+    "animationframe",
+    "animation",
+    "enhanced scroll",
+    "scrollevents",
+    "scroll event",
+    "scroll behavior",
+    "fast",
+    "jankfree",
+    "jank",
+    "jank-free",
+    "perfomance",
+    "scroll perfomance",
+    "perfomant"
+  ],
+  "author": "Sönke Kluth <soenke.kluth@gmail.com> (http://soenkekluth.com/)",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/soenkekluth/scrollemitter/issues"
+  },
+  "homepage": "https://github.com/soenkekluth/scrollemitter#readme",
+  "dependencies": {
+    "micromitter": "^1.0.2",
+    "raf": "^3.4.0"
+  },
+  "devDependencies": {
+    "babel-plugin-transform-class-properties": "^6.24.1",
+    "eslint": "^4.15.0",
+    "parcel-bundler": "^1.4.1"
+  }
+}
