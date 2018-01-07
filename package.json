@@ -1,6 +1,6 @@
 {
   "name": "scrollemitter",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description":
     "enhanced scroll events like scroll: start, progress, stop, min, max",
   "main": "build/index.js",
