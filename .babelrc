@@ -1,5 +1,15 @@
 {
-  "plugins": [
-    "transform-class-properties"
-  ]
+    "presets": [
+        [
+            "env",
+            {
+                "loose": true,
+                "modules": false,
+                "useBuiltIns": "entry"
+            }
+        ]
+    ],
+    "plugins": [
+        "transform-class-properties"
+    ]
 }

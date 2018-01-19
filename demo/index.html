@@ -90,7 +90,7 @@
       })
       .on('scroll:progress', function(event) {
         console.log('scroll:progress  y: ' + scrollemitter.y + '  speed: ' + scrollemitter.speedY + '  maxSpeed: ' + scrollemitter.maxSpeedY + '  direction: ' + scrollemitter.directionY + ' (' + directionToString(scrollemitter.directionY) + ')')
-        follower.style[prefixedTransform] = 'translate3d(0,' + scrollemitter.y + 'px,0)';
+        follower.style[prefixedTransform] = 'translate3d(0,' + (scrollemitter.y + scrollemitter.speedY / 1 ) + 'px,0)';
       })
       .on('scroll:stop', function(event) {
         console.log('scroll:stop      y: ' + scrollemitter.y + '  direction: ' + scrollemitter.directionY + ' (' + directionToString(scrollemitter.directionY) + ')')

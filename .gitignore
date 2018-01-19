@@ -3,3 +3,4 @@ npm-debug.log
 .history
 .cache
 /dist
+/lib

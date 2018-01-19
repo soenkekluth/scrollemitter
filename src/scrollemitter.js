@@ -1,35 +1,77 @@
+// require('setimmediate');
 import Emitter from 'micromitter';
+// import asap from 'asap';
 import raf from 'raf';
+import {direction} from './scroll-direction';
 import scrollParent from './scroll-parent';
 
 class ScrollEmitter extends Emitter {
-  _scrollTarget = null;
-  _y = 0;
-  _x = 0;
-  _speedY = 0;
-  _maxSpeedY = 0;
-  _speedX = 0;
-  _lastSpeed = 0;
-  _lastDirectionY = ScrollEmitter.direction.none;
-  _lastDirectionX = ScrollEmitter.direction.none;
-  _stopFrames = 3;
-  _currentStopFrames = 0;
-  _firstRender = true;
-  _directionY = ScrollEmitter.direction.none;
-  _directionX = ScrollEmitter.direction.none;
-  _scrolling = false;
-  _canScrollY = false;
-  _canScrollX = false;
 
-  static getInstance(scrollTarget, options) {
-    if (!scrollTarget.scrollEmitter) {
-      return new ScrollEmitter(scrollTarget, options);
-    }
-    return scrollTarget.scrollEmitter;
+  static direction = direction
+
+  static defaultProps = {
+    el: null,
+    maxSpeed: false,
+    speed: true,
+    direction: true,
   }
 
-  static hasInstance(scrollTarget) {
-    return typeof scrollTarget.scrollEmitter !== 'undefined';
+  state = {
+
+    position: {
+      y: 0,
+      x: 0,
+    },
+
+    speed: {
+      y: 0,
+      x: 0,
+      xMax: 0,
+      yMax: 0,
+    },
+
+    direction: {
+      y: direction.none,
+      x: direction.none,
+    },
+    scrolling: false,
+    canScroll: {
+      x: false,
+      y: false,
+    },
+  };
+
+  lastState = {
+    position: {
+      y: 0,
+      x: 0,
+    },
+
+    speed: {
+      y: 0,
+      x: 0,
+      xMax: 0,
+      yMax: 0,
+    },
+
+    direction: {
+      y: direction.none,
+      x: direction.none,
+    },
+  };
+
+  stopFrames = 0;
+  firstRender = true;
+
+  static getInstance(el) {
+    if (this.hasInstance(el)) {
+      return el.scrollEmitter;
+    }
+    return null;
+  }
+
+  static hasInstance(el) {
+    return (el && (typeof el.scrollEmitter !== 'undefined' && el.scrollEmitter !== null));
   }
 
   static getScrollParent(element) {
@@ -64,14 +106,6 @@ class ScrollEmitter extends Emitter {
     );
   }
 
-  static direction = {
-    up: -1,
-    down: 1,
-    none: 0,
-    right: 2,
-    left: -2,
-  };
-
   static events = {
     SCROLL_PROGRESS: 'scroll:progress',
     SCROLL_START: 'scroll:start',
@@ -83,287 +117,291 @@ class ScrollEmitter extends Emitter {
     SCROLL_RESIZE: 'scroll:resize',
   };
 
-  constructor(scrollTarget = window, options = {}) {
-    if (ScrollEmitter.hasInstance(scrollTarget)) {
-      return ScrollEmitter.getInstance(scrollTarget);
+  constructor(props = {el:window}) {
+    console.log('props', props);
+    if (ScrollEmitter.hasInstance(props.el)) {
+      return ScrollEmitter.getInstance(props.el);
     }
 
-    super(scrollTarget);
+    super(props.el || window);
 
-    scrollTarget.scrollEmitter = this;
-    this._scrollTarget = scrollTarget;
-    this.cancelFrame = false;
-    this.options = options;
-
-    this.init();
-  }
-
-  init() {
-    this.getScrollPosition =
-      this._scrollTarget === window
-        ? function() {
-            return { y: ScrollEmitter.windowY, x: ScrollEmitter.windowX };
-          }.bind(this)
-        : function() {
-            return {
-              y: this._scrollTarget.scrollTop,
-              x: this._scrollTarget.scrollLeft,
-            };
-          }.bind(this);
-
-    this.onResize = () => {
-      this.emit(ScrollEmitter.events.SCROLL_RESIZE,{emitter:this});
-    };
+    this.props = Object.assign({}, ScrollEmitter.defaultProps, {el:window}, props);
+    this.props.el.scrollEmitter = this;
     this.onScroll = this.onScroll.bind(this);
     this.onNextFrame = this.onNextFrame.bind(this);
 
-    this.updateScrollPosition();
+    this.onResize = () => {
+      this.emit(ScrollEmitter.events.SCROLL_RESIZE, { emitter: this });
+    };
 
-    if (this._scrollTarget !== window) {
+    if (this.props.el !== window) {
+      this.getPosition = () => ({
+        y: this.props.el.scrollTop,
+        x: this.props.el.scrollLeft,
+      });
       const regex = /(auto|scroll)/;
-      const style = window.getComputedStyle(this._scrollTarget, null);
-      this._canScrollY = regex.test(style.getPropertyValue('overflow-y'));
-      this._canScrollX = regex.test(style.getPropertyValue('overflow-x'));
+      const style = window.getComputedStyle(this.props.el, null);
+      this.state.canScroll.y = regex.test(style.getPropertyValue('overflow-y'));
+      this.state.canScroll.x = regex.test(style.getPropertyValue('overflow-x'));
     } else {
-      this._canScrollY = this.clientHeight < this.scrollHeight;
-      this._canScrollX = this.clientWidth < this.scrollWidth;
+      this.getPosition = () => ({ y: ScrollEmitter.windowY, x: ScrollEmitter.windowX });
+      this.state.canScroll.y = this.clientHeight < this.scrollHeight;
+      this.state.canScroll.x = this.clientWidth < this.scrollWidth;
     }
 
-    if (this._scrollTarget.addEventListener) {
-      this._scrollTarget.addEventListener('scroll', this.onScroll, false);
-      this._scrollTarget.addEventListener('resize', this.onResize, false);
-    } else if (this._scrollTarget.attachEvent) {
-      this._scrollTarget.attachEvent('scroll', this.onScroll);
-      this._scrollTarget.attachEvent('resize', this.onResize);
-    }
+    this.props.el.addEventListener('scroll', this.onScroll, false);
+    this.props.el.addEventListener('resize', this.onResize, false);
+
+    this.updatePosition();
   }
 
   destroy() {
-    this._cancelNextFrame();
+    this.cancelNextFrame();
 
-    if (this._scrollTarget) {
-      if (this._scrollTarget.addEventListener) {
-        this._scrollTarget.removeEventListener('scroll', this.onScroll);
-        this._scrollTarget.removeEventListener('resize', this.onResize);
-      } else if (this._scrollTarget.attachEvent) {
-        this._scrollTarget.detachEvent('scroll', this.onScroll);
-        this._scrollTarget.detachEvent('resize', this.onResize);
-      }
+    if (this.props.el) {
+      this.props.el.removeEventListener('scroll', this.onScroll);
+      this.props.el.removeEventListener('resize', this.onResize);
+      delete this.props.el.scrollEmitter;
     }
-
-    // this.onResize = null;
-    // this.onScroll = null;
-    // this.getScrollPosition = null;
-    // this.onNextFrame = null;
-    delete this._scrollTarget.scrollEmitter;
-    this._scrollTarget = null;
+    this.props.el = null;
   }
 
-  updateScrollPosition() {
-    this._y = this.y;
-    this._x = this.x;
-  }
-
-  get scrollPosition() {
-    return this.getScrollPosition();
-  }
-
-  get directionY() {
-    if (!this._canScrollY || (this.speedY === 0 && !this._scrolling)) {
-      this._directionY = ScrollEmitter.direction.none;
-    } else {
-      if (this.speedY > 0) {
-        this._directionY = ScrollEmitter.direction.up;
-      } else if (this.speedY < 0) {
-        this._directionY = ScrollEmitter.direction.down;
-      }
-    }
-    return this._directionY;
-  }
-
-  get directionX() {
-    if (!this._canScrollX || (this.speedX === 0 && !this._scrolling)) {
-      this._directionX = ScrollEmitter.direction.none;
-    } else {
-      if (this.speedX > 0) {
-        this._directionX = ScrollEmitter.direction.left;
-      } else if (this.speedX < 0) {
-        this._directionX = ScrollEmitter.direction.right;
-      }
-    }
-    return this._directionX;
-  }
-
-  get scrollTarget() {
-    return this._scrollTarget;
-  }
-
-  get scrolling() {
-    return this._scrolling;
-  }
-
-  get speedY() {
-    return this._speedY;
-  }
-
-  get speedY() {
-    return this._speedY;
-  }
-
-  get speedX() {
-    return this._speedX;
-  }
-
-  get maxSpeedY() {
-    return this._maxSpeedY;
-  }
-
-  get canScrollY() {
-    return this._canScrollY;
-  }
-
-  get canScrollX() {
-    return this._canScrollX;
-  }
-
-  get y() {
-    return this.scrollPosition.y;
+  updatePosition() {
+    this.lastState.position.y = this.state.position.y;
+    this.lastState.position.x = this.state.position.x;
+    this.state.position.y = this.y;
+    this.state.position.x = this.x;
   }
 
   get x() {
-    return this.scrollPosition.x;
+    return this.getPosition().x;
+  }
+  get y() {
+    return this.getPosition().y;
+  }
+
+  get direction() {
+    return this.state.direction;
+  }
+
+  get speed() {
+    return this.state.speed;
+  }
+
+  get el() {
+    return this.props.el;
+  }
+
+  get scrolling() {
+    return this.state.scrolling;
   }
 
   get clientHeight() {
-    return this._scrollTarget === window
+    return this.props.el === window
       ? window.innerHeight
-      : this._scrollTarget.clientHeight;
+      : this.props.el.clientHeight;
   }
 
   get clientWidth() {
-    return this._scrollTarget === window
+    return this.props.el === window
       ? window.innerWidth
-      : this._scrollTarget.clientWidth;
+      : this.props.el.clientWidth;
   }
 
   get scrollHeight() {
-    return this._scrollTarget === window
+    return this.props.el === window
       ? ScrollEmitter.documentHeight
-      : this._scrollTarget.scrollHeight;
+      : this.props.el.scrollHeight;
   }
 
   get scrollWidth() {
-    return this._scrollTarget === window
+    return this.props.el === window
       ? ScrollEmitter.documentWidth
-      : this._scrollTarget.scrollWidth;
+      : this.props.el.scrollWidth;
   }
 
   onScroll() {
-    this._currentStopFrames = 0;
-    if (this._firstRender) {
-      this._firstRender = false;
+
+    if (this.firstRender) {
+      this.firstRender = false;
       if (this.y > 1 || this.x > 1) {
-        this.updateScrollPosition();
-        this.emit(ScrollEmitter.events.SCROLL_PROGRESS,{emitter:this});
+        this.updatePosition();
+        this.emit(ScrollEmitter.events.SCROLL_PROGRESS, { emitter: this });
         return;
       }
     }
 
-    if (!this._scrolling) {
-      this._scrolling = true;
-      this._maxSpeedY = 0;
-      this._lastDirectionY = ScrollEmitter.direction.none;
-      this._lastDirectionX = ScrollEmitter.direction.none;
-      this.emit(ScrollEmitter.events.SCROLL_START,{emitter:this});
-      this.cancelFrame = false;
-      raf(this.onNextFrame);
+    this.stopFrames = 0;
+    this.updatePosition();
+    this.updateSpeed();
+
+    if (!this.state.scrolling) {
+
+      this.updateDirection();
+      // this.props.el.removeEventListener('scroll', this.onScroll);
+      this.state.scrolling = true;
+      this.emit(ScrollEmitter.events.SCROLL_START, { emitter: this });
+      this.frame = raf(this.onNextFrame);
+      // asap(this.onNextFrame);
+
+    }
+    // this.immediateID = setImmediate(this.onNextFrame);
+    // asap(this.onNextFrame);
+  }
+
+  updateSpeed() {
+    if (this.props.speed) {
+      this.lastState.speed.y = this.state.speed.y;
+      this.lastState.speed.x = this.state.speed.x;
+      this.state.speed.y = this.lastState.position.y - this.state.position.y;
+      this.state.speed.x = this.lastState.position.x - this.state.position.x;
+    }
+
+    if (this.props.speed && this.props.maxSpeed) {
+      if (this.state.speed.y < 0) {
+        this.state.speed.yMax =
+        this.state.speed.y < this.state.speed.yMax
+          ? this.state.speed.y
+          : this.state.speed.yMax;
+      } else if (this.state.speed.y > 0) {
+        this.state.speed.yMax =
+        this.state.speed.y > this.state.speed.yMax
+          ? this.state.speed.y
+          : this.state.speed.yMax;
+      }
+    }
+  }
+
+  emitDirection() {
+
+    if (this.state.canScroll.y && (this.lastState.direction.y !== this.state.direction.y)) {
+      this.updateDirection();
+      this.lastState.direction.y = this.state.direction.y;
+      this.emit(
+        'scroll:' +
+        (this.state.direction.y === direction.down
+          ? 'down'
+          : 'up'),
+        { emitter: this }
+      );
+    }
+    if (this.state.canScroll.x && (this.lastState.direction.x !== this.state.direction.x)) {
+      this.updateDirection();
+      this.lastState.direction.x = this.state.direction.x;
+      this.emit(
+        'scroll:' +
+          (this.state.direction.x === direction.right
+            ? 'right'
+            : 'left'),
+        { emitter: this }
+      );
+    }
+
+  }
+
+
+  updateDirection() {
+
+    if (this.state.canScroll.y) {
+      if (this.state.speed.y === 0 && !this.state.scrolling) {
+        this.state.direction.y = direction.none;
+      } else {
+        if (this.state.speed.y > 0) {
+          this.state.direction.y = direction.up;
+        } else if (this.state.speed.y < 0) {
+          this.state.direction.y = direction.down;
+        }
+      }
+    }
+
+    if (this.state.canScroll.x ) {
+      if (this.state.speed.x === 0 && !this.state.scrolling) {
+        this.state.direction.x = direction.none;
+      } else {
+        if (this.state.speed.x > 0) {
+          this.state.direction.x = direction.left;
+        } else if (this.state.speed.x < 0) {
+          this.state.direction.x = direction.right;
+        }
+      }
     }
   }
 
   onNextFrame() {
-    if (!this.cancelFrame) {
-      this._speedY = this._y - this.y;
-      this._speedX = this._x - this.x;
-
-      if (this._speedY < 0) {
-        this._maxSpeedY =
-          this._speedY < this._maxSpeedY ? this._speedY : this._maxSpeedY;
-      } else if (this._speedY > 0) {
-        this._maxSpeedY =
-          this._speedY > this._maxSpeedY ? this._speedY : this._maxSpeedY;
-      }
-
-      var speed = +this.speedY + +this.speedX;
-      if (
-        this._scrolling &&
-        (speed === 0 && this._currentStopFrames++ > this._stopFrames)
-      ) {
-        this.onScrollStop();
-        return;
-      }
-
-      this.updateScrollPosition();
-
-      if (this._lastDirectionY !== this.directionY) {
-        this.emit(
-          'scroll:' +
-            (this.directionY === ScrollEmitter.direction.down
-              ? 'down'
-              : 'up'),
-          { emitter: this }
-        );
-      }
-      if (this._lastDirectionX !== this.directionX) {
-        this.emit(
-          'scroll:' +
-            (this.directionX === ScrollEmitter.direction.right
-              ? 'right'
-              : 'left'),
-          { emitter: this }
-        );
-      }
-
-      this._lastDirectionY = this.directionY;
-      this._lastDirectionX = this.directionX;
-
-      this.emit(ScrollEmitter.events.SCROLL_PROGRESS,{emitter:this});
-
-      raf(this.onNextFrame);
+    if (!this.state.scrolling) {
+      return;
     }
+
+    this.emit(ScrollEmitter.events.SCROLL_PROGRESS, { emitter: this });
+
+    const speed = ((this.state.position.y - this.lastState.position.y) + (this.state.position.x - this.lastState.position.x));
+    if (!speed && this.stopFrames++ > 3) {
+      this.onScrollStop();
+      return;
+    }
+
+    if (this.props.direction) {
+      this.emitDirection();
+    }
+
+    this.lastState.position.y = this.state.position.y;
+    this.lastState.position.x = this.state.position.x;
+
+    this.frame = raf(this.onNextFrame);
+    // asap(this.onNextFrame);
+    // this.immediateID = setImmediate(this.onNextFrame);
   }
 
   onScrollStop() {
-    this._cancelNextFrame();
-    this._scrolling = false;
+    this.state.scrolling = false;
 
-    if (this._scrollTarget) {
-      this.updateScrollPosition();
+    this.cancelNextFrame();
 
-      this.emit(ScrollEmitter.events.SCROLL_STOP,{emitter:this});
+    this.lastState.direction.y = this.state.direction.y;
+    this.lastState.direction.x = this.state.direction.x;
 
-      if (this._canScrollY) {
-        if (this.y <= 0) {
-          this.emit(ScrollEmitter.events.SCROLL_MIN,{emitter:this});
-        } else if (this.y + this.clientHeight >= this.scrollHeight) {
-          this.emit(ScrollEmitter.events.SCROLL_MAX,{emitter:this});
-        }
+    this.updatePosition();
+
+    this.lastState.speed.x = this.state.speed.x = 0;
+    this.lastState.speed.y = this.state.speed.y = 0;
+
+    if (this.state.canScroll.y) {
+      if (this.y <= 0) {
+        this.emit(ScrollEmitter.events.SCROLL_MIN, { emitter: this });
+      } else if (this.y + this.clientHeight >= this.scrollHeight) {
+        this.emit(ScrollEmitter.events.SCROLL_MAX, { emitter: this });
       }
-
-      if (this._canScrollX) {
-        if (this.x <= 0) {
-          this.emit(ScrollEmitter.events.SCROLL_MIN,{emitter:this});
-        } else if (this.x + this.clientWidth >= this.scrollWidth) {
-          this.emit(ScrollEmitter.events.SCROLL_MAX,{emitter:this});
-        }
-      }
-    } else {
-      this.emit(ScrollEmitter.events.SCROLL_STOP,{emitter:this});
     }
+
+    if (this.state.canScroll.x) {
+      if (this.x <= 0) {
+        this.emit(ScrollEmitter.events.SCROLL_MIN, { emitter: this });
+      } else if (this.x + this.clientWidth >= this.scrollWidth) {
+        this.emit(ScrollEmitter.events.SCROLL_MAX, { emitter: this });
+      }
+    }
+
+    this.emit(ScrollEmitter.events.SCROLL_STOP, { emitter: this });
+
+    this.state.direction.y = direction.none;
+    this.state.direction.x = direction.none;
+
+    this.state.speed.yMax = 0;
+    this.state.speed.xMax = 0;
+
+    // this.props.el.addEventListener('scroll', this.onScroll, false);
   }
 
-  _cancelNextFrame() {
-    this.cancelFrame = true;
-    this._currentStopFrames = 0;
+  cancelNextFrame() {
+    // console.log('this.asap', this.asap);
+    // console.log('this.immediateID', this.immediateID);
+    // clearImmediate(this.immediateID);
+    // this.cancelFrame = true;
+    if (this.frame) {
+      raf.cancel(this.frame);
+      this.frame = null;
+    }
+    this.stopFrames = 0;
   }
 }
 

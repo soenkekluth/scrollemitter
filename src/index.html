@@ -8,11 +8,13 @@
   <title>ScrollFeatures Demo</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="scrollemitter.css">
+  <script src="https://unpkg.com/d3-require@0"></script>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/prefixfree/1.0.7/prefixfree.min.js"></script>
 </head>
 
 <body>
-  <strong style="position:fixed; left:50%; transform:translateX(-50%); color:white;">open your console</strong>
+  <strong class="message">open your console</strong>
   <div class="follower"></div>
   <div class="overflow-y">
     <div class="overflow-content">
@@ -26,11 +28,12 @@
   </div>
   <script src="index.js"></script>
   <script>
+
+
     var follower = document.querySelector('.follower');
     var prefixedTransform = PrefixFree.prefixSelector('transform');
 
     window.console = window.console || function() {}
-
 
     function directionToString(direction) {
       switch (direction) {
@@ -49,9 +52,9 @@
 
     function onScroll(e) {
       if (e.emitter.canScrollY) {
-        console.log(e.target.className + '   ===== ' + e.type + ' =====', 'y: ' + e.emitter.y + '  direction: ' + e.emitter.directionY + ' (' + directionToString(e.emitter.directionY) + ')')
+        console.log(e.target.className + '   ===== ' + e.type + ' =====', 'y: ' + e.emitter.y + '  direction: ' + e.emitter.direction.y + ' (' + directionToString(e.emitter.direction.y) + ')')
       } else {
-        console.log(e.target.className + '   ===== ' + e.type + ' =====', 'x: ' + e.emitter.x + '  direction: ' + e.emitter.directionX + ' (' + directionToString(e.emitter.directionX) + ')')
+        console.log(e.target.className + '   ===== ' + e.type + ' =====', 'x: ' + e.emitter.x + '  direction: ' + e.emitter.direction.x + ' (' + directionToString(e.emitter.direction.x) + ')')
       }
     };
 
@@ -68,7 +71,7 @@
         .on('scroll:max', onScroll);
     }
 
-    var scrollemitter = new ScrollEmitter()
+    var scrollemitter = new ScrollEmitter({maxSpeed: true})
       .on('scroll:resize', function(event) {
         console.log('========== scroll:resize =============', scrollemitter.clientHeight, scrollemitter.clientWidth);
       })
@@ -85,21 +88,25 @@
         console.log('========== scroll:max =============');
       })
       .on('scroll:start', function(event) {
-        console.log('scroll:start     y: ' + scrollemitter.y + '  direction: ' + scrollemitter.directionY + ' (' + directionToString(scrollemitter.directionY) + ')')
-        follower.style[prefixedTransform] = 'translate3d(0,' + scrollemitter.y + 'px,0)';
+        console.log('========== scroll:start ==========     y: ' + scrollemitter.y + '  direction: ' + scrollemitter.direction.y + ' (' + directionToString(scrollemitter.direction.y) + ')')
+        follower.style[prefixedTransform] = 'translate3d(0px,' + scrollemitter.y + 'px,0px)';
+        // follower.style[prefixedTransform] = 'translateY('+scrollemitter.y + 'px)';
       })
       .on('scroll:progress', function(event) {
-        console.log('scroll:progress  y: ' + scrollemitter.y + '  speed: ' + scrollemitter.speedY + '  maxSpeed: ' + scrollemitter.maxSpeedY + '  direction: ' + scrollemitter.directionY + ' (' + directionToString(scrollemitter.directionY) + ')')
-        follower.style[prefixedTransform] = 'translate3d(0,' + scrollemitter.y + 'px,0)';
+        console.log('========== scroll:progress ==========   y: ' + scrollemitter.y + '  speed: ' + scrollemitter.speed.y + '  maxSpeed: ' + scrollemitter.speed.yMax + '  direction: ' + scrollemitter.direction.y + ' (' + directionToString(scrollemitter.direction.y) + ')')
+        follower.style[prefixedTransform] = 'translate3d(0px,' + scrollemitter.y + 'px,0px)';
+        // follower.style[prefixedTransform] = 'translateY('+scrollemitter.y + 'px)';
       })
       .on('scroll:stop', function(event) {
-        console.log('scroll:stop      y: ' + scrollemitter.y + '  direction: ' + scrollemitter.directionY + ' (' + directionToString(scrollemitter.directionY) + ')')
-        follower.style[prefixedTransform] = 'translate3d(0,' + scrollemitter.y + 'px,0)';
+        console.log('========== scroll:stop ==========   y: ' + scrollemitter.y + '  speed: ' + scrollemitter.speed.y + '  maxSpeed: ' + scrollemitter.speed.yMax + '  direction: ' + scrollemitter.direction.y + ' (' + directionToString(scrollemitter.direction.y) + ')')
+        // console.log('==========  scroll:stop ==========      y: ' + scrollemitter.y + '  direction: ' + scrollemitter.direction.y + ' (' + directionToString(scrollemitter.direction.y) + ')')
+        follower.style[prefixedTransform] = 'translate3d(0px,' + scrollemitter.y + 'px,0px)';
+        // follower.style[prefixedTransform] = 'translateY('+scrollemitter.y + 'px)';
       });
 
 
-    var scrollemitter2 = new ScrollEmitter(document.querySelector('.overflow-y'));
-    var scrollemitter3 = new ScrollEmitter(document.querySelector('.overflow-x'));
+    var scrollemitter2 = new ScrollEmitter({el:document.querySelector('.overflow-y')});
+    var scrollemitter3 = new ScrollEmitter({el:document.querySelector('.overflow-x')});
 
     addScrollHandler(scrollemitter2);
     addScrollHandler(scrollemitter3);
