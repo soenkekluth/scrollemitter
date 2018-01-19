@@ -2,18 +2,20 @@
   "name": "scrollemitter",
   "version": "1.1.0",
   "description": "enhanced scroll events like scroll: start, progress, stop, min, max",
-  "main": "lib/scrollemitter.js",
+  "main": "scrollemitter.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "yarn lint && yarn build:js && yarn build:lib",
     "build:js": "parcel build src/index.js",
     "build:lib": "babel src -d lib",
     "watch": "parcel src/index.html",
-    "lint": "eslint src --fix"
+    "lint": "eslint src --fix",
+    "deploy": "np --no-publish",
+    "postdeploy": "yarn copy && bs",
+    "copy": "yarn copy:pkg && yarn copy:readme",
+    "copy:pkg": "cp -rf package.json lib",
+    "copy:readme": "cp -rf README.md lib"
   },
-  "files": [
-    "lib"
-  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/soenkekluth/scrollemitter.git"
@@ -56,8 +58,10 @@
     "babel-eslint": "^8.2.1",
     "babel-plugin-transform-class-properties": "^6.24.1",
     "babel-preset-env": "^1.6.1",
+    "branchsite": "^4.0.2",
     "eslint": "^4.15.0",
     "eslint-plugin-private-props": "^0.3.0",
+    "np": "^2.18.3",
     "parcel-bundler": "^1.4.1"
   }
 }
