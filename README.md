@@ -92,5 +92,5 @@ scrolling
 
 ### demo (will be updated soon)
 
-https://rawgit.com/soenkekluth/scrollemitter/master/demo/index.html
+<https://cdn.rawgit.com/soenkekluth/scrollemitter/5b9226ab/demo/index.html>
 please see the console.logs for now
