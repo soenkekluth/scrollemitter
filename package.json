@@ -1,6 +1,6 @@
 {
   "name": "scrollemitter",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "enhanced scroll events like scroll: start, progress, stop, min, max",
   "main": "scrollemitter.js",
   "scripts": {
@@ -9,10 +9,11 @@
     "build-": "cross-env NODE_ENV=production run-s lint clear build:lib build:js size docs",
     "clear": "rimraf lib dist",
     "bump": "standard-version",
+    "semantic": "semantic-release",
     "docs": "documentation readme src/scrollemitter.js --section API -q",
     "lint:fix": "eslint src --fix",
     "lint": "eslint src test",
-    "prerelease": "run-s bump build && git push --follow-tags origin master",
+    "prerelease": "run-s bump build && git commit -a -m 'version: bump version' && git push --follow-tags origin master",
     "release": "cp -rf ./package.json lib && cp -rf ./README.md lib && cd lib && npm publish",
     "size": "echo \"Gzipped Size: $(strip-json-comments --no-whitespace dist/index.js | gzip-size)\"",
     "build:js": "parcel build src/index.js",
@@ -72,6 +73,7 @@
     "npm-run-all": "^4.1.2",
     "parcel-bundler": "^1.4.1",
     "rimraf": "^2.6.2",
+    "semantic-release": "^12.2.2",
     "standard-version": "^4.3.0",
     "strip-json-comments-cli": "^1.0.1"
   }
