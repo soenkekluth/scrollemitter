@@ -11,7 +11,7 @@ scroll:up
 scroll:down
 scroll:left
 scroll:right
-scroll:end
+scroll:stop
 scroll:min
 scroll:max
 ```

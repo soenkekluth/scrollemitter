@@ -19,4 +19,4 @@ const scrollParent = element => {
   return window;
 };
 
-module.exports = scrollParent;
+export default scrollParent;

@@ -1,11 +1,11 @@
 // require('setimmediate');
-import Emitter from 'micromitter';
+import MicroMitter from 'micromitter';
 // import asap from 'asap';
 import raf from 'raf';
 import {direction} from './scroll-direction';
 import scrollParent from './scroll-parent';
 
-class ScrollEmitter extends Emitter {
+class ScrollEmitter extends MicroMitter {
 
   static direction = direction
 
@@ -118,7 +118,6 @@ class ScrollEmitter extends Emitter {
   };
 
   constructor(props = {el:window}) {
-    console.log('props', props);
     if (ScrollEmitter.hasInstance(props.el)) {
       return ScrollEmitter.getInstance(props.el);
     }
@@ -155,6 +154,11 @@ class ScrollEmitter extends Emitter {
     this.updatePosition();
   }
 
+  /**
+   * destroys the instance
+   *
+   * @memberof ScrollEmitter
+   */
   destroy() {
     this.cancelNextFrame();
 
@@ -166,6 +170,11 @@ class ScrollEmitter extends Emitter {
     this.props.el = null;
   }
 
+  /**
+   * caches the position
+   *
+   * @memberof ScrollEmitter
+   */
   updatePosition() {
     this.lastState.position.y = this.state.position.y;
     this.lastState.position.x = this.state.position.x;
